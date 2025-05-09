@@ -8,132 +8,212 @@
 ## Table of Contents
 1. [Multisig Security Concepts](#multisig-security-concepts)
 2. [XPUBs, Public Keys, and Private Keys](#xpubs-public-keys-and-private-keys)
-3. [Multisig Worst-Case Scenarios and Recovery](#multisig-worst-case-scenarios-and-recovery)
+3. [Keys and Address Generation](#keys-and-address-generation)
+4. [Multisig Worst-Case Scenarios and Recovery](#multisig-worst-case-scenarios-and-recovery)
 
 ---
 
 ## Multisig Security Concepts
 
 ### What is Multisig?
-Multisig (short for multi-signature) is a method of securing Bitcoin using multiple keys. A common setup is 2-of-3, where three keys exist and any two are needed to sign a transaction.
+Multisig (multi-signature) secures Bitcoin with multiple keys. A 2-of-3 setup uses three keys, requiring any two to sign a transaction.
 
 ### Security Advantages
-- **Theft Mitigation:** A thief needs multiple keys to steal funds.
-- **Loss Resilience:** One key can be lost, but funds are still recoverable.
-- **Geographical Distribution:** Keys can be stored in different locations to reduce single points of failure.
+- **Theft Mitigation:** Needs multiple keys to steal funds.
+- **Loss Resilience:** One lost key doesn’t lock funds.
+- **Geographical Distribution:** Store keys in different locations to avoid single-point failures.
 
 ### Design Patterns
-| Model           | Description                                      | Threat Mitigation |
-|----------------|--------------------------------------------------|-------------------|
-| 2-of-3 Solo     | User controls all 3 keys                         | Key theft         |
-| 2-of-3 Partner  | User holds 2 keys, a trusted party holds 1      | Key loss          |
-| 2-of-3 Collaborative Custody | User + wallet provider + third party | Custody risk, theft |
+| Model           | Description                              | Threat Mitigation |
+|----------------|------------------------------------------|-------------------|
+| 2-of-3 Solo     | User holds all 3 keys                    | Key theft         |
+| 2-of-3 Partner  | User holds 2, trusted party holds 1      | Key loss          |
+| 2-of-3 Collaborative | User + provider + third party       | Custody risk, theft |
 
 ### Security Tips
-- Store each key in a different geographic or digital location.
-- Use hardware wallets whenever possible.
-- Don't reuse the same seed for multiple cosigners.
-- Always keep an up-to-date backup of your descriptor or wallet configuration.
+- Store keys in separate locations.
+- Use hardware wallets.
+- Avoid seed reuse across cosigners.
+- Back up descriptors or wallet configs.
 
 ---
 
 ## XPUBs, Public Keys, and Private Keys
 
-### The Hierarchy: From Mnemonic to Multisig Script
+### Key Hierarchy
 
 ```plaintext
 Mnemonic (Seed)
     ↓
-Master Private Key (m)
+Master Private Key
     ↓
-Extended Private Key (xprv) — gives access to all derived private keys
+Extended Private Key (xprv) — controls all derived keys
     ↓
-Extended Public Key (xpub) — can generate addresses but not sign
+Extended Public Key (xpub) — generates addresses, can’t sign
 ```
 
-### Cosigner Key Roles
-Each multisig cosigner contributes an extended public key (XPUB).
-- **xpub:** Extended Public Key; safe to share for address generation
-- **xprv:** Extended Private Key; must be kept secret
+### Cosigner Roles
+Each cosigner provides an XPUB.
+- **xpub:** Safe to share for address generation.
+- **xprv:** Keep secret; controls funds.
 
-### How Public Keys Fit Into Multisig
-A 2-of-3 multisig script looks like this:
+### Public Keys in Multisig
+A 2-of-3 multisig script:
 ```
 2 <pubkey1> <pubkey2> <pubkey3> 3 OP_CHECKMULTISIG
 ```
-This script requires signatures from any 2 of the 3 public keys.
+Requires two signatures from the three public keys.
 
 ### XPUBs in Descriptors
-Descriptors express how addresses are constructed. Example:
+Descriptors define address creation, e.g.:
 ```
 wsh(multi(2,[fingerprint1/derivation1]xpub1/0/*,[fingerprint2/derivation2]xpub2/0/*,[fingerprint3/derivation3]xpub3/0/*))
 ```
-This allows wallets like Sparrow to generate the same set of addresses independently.
+Enables wallets like Sparrow to generate addresses.
+
+### XPUBs vs. Public Keys
+**Public Key:**
+- Part of a key pair; generates one Bitcoin address.
+- Safe to share for receiving funds.
+
+**XPUB (Extended Public Key):**
+- Generates multiple public keys/addresses in HD wallets (BIP-32/BIP-44).
+- Safe to share, but reveals all derived addresses (not funds).
+
+**Key Differences:**
+- **Functionality:** Public key = one address; XPUB = many addresses.
+- **Use Case:** Public keys for single addresses; XPUBs for HD wallets.
+- **Security:** Both safe to share, but XPUBs reduce privacy by exposing all addresses.
+
+**Summary:** XPUBs extend public keys to generate multiple addresses, ideal for wallets managing many addresses.
+
+### XPRVs vs. Private Keys
+**Private Key:**
+- Part of a key pair; signs transactions for one address.
+- Must stay secret to protect funds.
+
+**XPRV (Extended Private Key):**
+- Generates multiple private keys/addresses in HD wallets (BIP-32/BIP-44).
+- Must stay secret; controls all derived funds.
+
+**Key Differences:**
+- **Functionality:** Private key = one address; XPRV = many private keys.
+- **Use Case:** Private keys for signing; XPRVs for HD wallet management.
+- **Security:** Both must be secret; XPRV exposure risks all derived funds.
+
+**Summary:** XPRVs extend private keys to manage multiple addresses securely in HD wallets.
+
+---
+
+## Keys and Address Generation
+
+### General Address Generation
+Bitcoin addresses are created from keys, for both single-signature and multisig wallets:
+
+**Private to Public Key:**
+- Private key (random number) generates a public key via elliptic curve math (secp256k1).
+- Private key signs transactions; public key creates addresses.
+
+**Public Key to Address:**
+- Public key is hashed (SHA-256, RIPEMD-160) and encoded (Base58Check or Bech32) to form an address.
+- Addresses are shared to receive funds; safe as they hide keys.
+
+**XPRV and XPUB in HD Wallets:**
+- XPRV (from mnemonic seed) generates private keys for signing.
+- XPUB (from XPRV) generates public keys for addresses.
+- HD wallets (BIP-32/BIP-44) create many addresses from one XPRV/XPUB.
+
+**Security:**
+- Keep XPRVs/private keys secret.
+- XPUBs/public keys are shareable but may reduce privacy.
+- Back up mnemonic seeds securely.
+
+### Multisig Address Generation
+Multisig addresses combine multiple keys:
+
+**Public Keys:**
+- Each cosigner provides a public key (from XPUB).
+- Combined into a multisig script, e.g.:
+  ```
+  2 <pubkey1> <pubkey2> <pubkey3> 3 OP_CHECKMULTISIG
+  ```
+- Script is hashed to create a multisig address (P2SH/P2WSH).
+
+**XPUBs:**
+- Cosigners share XPUBs to generate public keys for multisig scripts.
+- Descriptor example:
+  ```
+  wsh(multi(2,[fingerprint1/derivation1]xpub1/0/*,[fingerprint2/derivation2]xpub2/0/*,[fingerprint3/derivation3]xpub3/0/*))
+  ```
+
+**XPRVs and Private Keys:**
+- XPRVs generate private keys for signing.
+- Two private keys (from XPRVs) sign multisig transactions.
+
+**Key Relationships:**
+- XPRV → Private keys for signing.
+- XPUB → Public keys for multisig scripts.
+- Public keys → Multisig address via script hashing.
+- Private keys → Sign transactions.
+
+**Security:**
+- Store XPRVs/private keys securely (e.g., hardware wallets).
+- Share XPUBs cautiously to limit address visibility.
+- Back up descriptors to recover wallet setup.
+- Test multisig with small amounts first.
 
 ---
 
 ## Multisig Worst-Case Scenarios and Recovery
 
 ### Scenario 1: Lost Access to Sparrow Wallet
-- **What happens:** You can’t open the wallet or the app anymore.
+- **What happens:** Can’t access wallet/app.
 - **Solution:**
-    - Multisig is not tied to Sparrow — it’s based on BIP-39 seeds and descriptors.
-    - Reinstall Sparrow and re-import your wallet (using the descriptor or cosigner xpubs + seed).
-    - Or import your seed(s) into any other Bitcoin wallet that supports multisig (e.g., Electrum, Nunchuk, Specter).
-    - Worst case: use a Bitcoin script interpreter or command-line tool (e.g., bitcoin-cli, miniscript) to construct and sign manually.
-    - As long as you have access to 2 of 3 seed phrases and the wallet descriptor or cosigner xpubs, you're good.
-- **Prevention:** Always back up descriptors and seed phrases securely, ideally with geographical redundancy.
+    - Reinstall Sparrow, import descriptor or xpubs + seed.
+    - Use other multisig wallets (Electrum, Nunchuk, Specter).
+    - Worst case: Sign manually with bitcoin-cli or miniscript.
+    - Need 2 of 3 seeds + descriptor/xpubs.
+- **Prevention:** Back up descriptors/seeds with redundancy.
 
 ### Scenario 2: One Seed Phrase Lost
-- **What happens:** One of the cosigner seed phrases is gone.
+- **What happens:** One cosigner seed is gone.
 - **Solution:**
-    - No problem — multisig requires only 2 of 3.
-    - Just make sure the remaining 2 seeds are backed up safely.
-    - You can create a new multisig wallet using the 2 remaining cosigners and generate a new 2-of-3 wallet to migrate funds for better redundancy.
-- **Prevention:** Keep backups of all seed phrases in multiple secure locations. Consider using a third-party storage service for redundancy.
+    - Still safe; only 2 of 3 needed.
+    - Back up remaining seeds.
+    - Optionally, create new 2-of-3 wallet and migrate funds.
+- **Prevention:** Store seed backups in multiple locations.
 
 ### Scenario 3: Two Seed Phrases Lost
 - **What happens:** Only one cosigner remains.
 - **Risk Level:** Critical
-- **Solution:** Funds are permanently locked — a 2-of-3 wallet cannot be spent with only one signature.
-- **Mitigation:**
-    - This is the risk you balance with 2-of-3: losing 2 keys = funds gone.
-    - Always keep at least 3 geographically distributed backups of each cosigner (paper, hardware, metal, etc.).
-    - Use Shamir's Secret Sharing or multisig with trusted parties if you're worried about this.
-- **Prevention:** Store all seed phrases in separate, secure locations. Implement Shamir’s Secret Sharing or use 3rd parties for further safety.
+- **Solution:** Funds locked; 2-of-3 requires two signatures.
+- **Mitigation:** Use Shamir’s Secret Sharing or trusted parties.
+- **Prevention:** Store seeds in separate, secure locations.
 
-### Scenario 4: One Seed + Wallet Descriptor Lost
-- **What happens:** You have 2 seed phrases, but you don’t remember how the multisig wallet was set up (no descriptor or xpubs saved).
+### Scenario 4: One Seed + Descriptor Lost
+- **What happens:** Have 2 seeds but no descriptor/xpubs.
 - **Solution:**
-    - You can reconstruct the descriptor manually if you know:
-        - The script type (wsh, sh(wsh(...)), etc.)
-        - The derivation paths used
-        - Which xpubs were involved and in what order
-    - This is painful, so always save the full descriptor string when you create the wallet. Sparrow gives it to you — back it up like a seed!
-- **Prevention:** Save the full descriptor string when setting up your wallet and store it securely.
+    - Reconstruct descriptor with script type, derivation paths, xpub order.
+    - Save descriptor at wallet creation.
+- **Prevention:** Back up descriptor securely.
 
 ### Scenario 5: Two Hardware Wallets Fail
-- **What happens:** You used 2 hardware wallets, and both are bricked.
+- **What happens:** Two hardware wallets are bricked.
 - **Solution:**
-    - If you backed up the recovery seed phrases, you can restore them into:
-        - Another hardware wallet
-        - Sparrow
-        - Electrum
-        - BlueWallet, etc.
-    - If you didn’t back up the seeds... then it’s like scenario 3: funds are lost.
-- **Prevention:** Always back up the seed phrases of your hardware wallets in multiple secure locations.
+    - Restore seeds to new hardware or software wallets (Sparrow, Electrum).
+    - No seed backups = funds lost (like Scenario 3).
+- **Prevention:** Back up seeds in multiple secure locations.
 
-### Scenario 6: One Seed Compromised (Stolen)
-- **What happens:** An attacker gets access to one seed.
+### Scenario 6: One Seed Compromised
+- **What happens:** Attacker has one seed.
 - **Solution:**
-    - Funds are still safe — attacker needs two seeds to steal anything.
-    - You can migrate funds to a new 2-of-3 multisig setup (with new keys) as a precaution.
-    - Multisig allows rolling over to new sets of cosigners — just spend everything to a fresh setup.
-- **Prevention:** Immediately migrate funds to a new multisig setup with fresh keys.
+    - Funds safe; needs two seeds.
+    - Migrate to new 2-of-3 setup with fresh keys.
+- **Prevention:** Migrate funds immediately if compromised.
 
 ---
 
 ## Final Notes
-- Always test your multisig setup before storing significant funds.
-- Document and share recovery instructions with trusted individuals (if appropriate).
-- Consider using N-of-M setups (e.g., 3-of-5) for institutional use.
+- Test multisig setups with small amounts.
+- Document recovery steps for trusted contacts.
+- Consider N-of-M setups (e.g., 3-of-5) for institutional use.
