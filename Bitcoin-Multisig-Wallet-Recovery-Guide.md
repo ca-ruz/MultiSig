@@ -1,20 +1,21 @@
 # Bitcoin Multisig Wallet Recovery Guide
 
-This guide outlines how to recover a 2-of-3 multisig wallet in Sparrow Wallet using devices, xpubs, seed phrases, or restored devices after losing/wiping all original devices. The wallet uses two Jade devices and a Coldcard Q.
+This guide outlines how to recover a 2-of-3 multisig wallet in Sparrow Wallet using devices, xpubs, seed phrases, restored devices after loss/wipe, or a wallet descriptor (QR code or string). The wallet uses two Jade devices and a Coldcard Q.
 
 ## Prerequisites
 - **Devices**: Coldcard Q and two Jade devices with seed phrases and optionally the multisig configuration.
 - **xpubs**: Extended public keys for all three devices, with derivation path (e.g., `m/48'/0'/0'/2'` for mainnet) and master fingerprints.
 - **Seed Phrases**: 12/24-word BIP-39 seed phrases for all three devices.
-- **Backup**: Exported multisig wallet file from Sparrow (recommended).
+- **Backups**: Exported Sparrow wallet file and/or wallet descriptor (QR code, string, or file).
 - **Network**: Bitcoin mainnet or testnet (use testnet for practice).
 
 ## 1. Deleting the Multisig Wallet
 1. In Sparrow, select the wallet and go to **File** > **Delete Wallet**.
 2. Confirm deletion. This removes the wallet from Sparrow’s database but does not affect blockchain funds or device configurations.
 3. **Backup Before Deletion**:
-   - Go to **Settings** > **Export** > **Export File** > **Sparrow Wallet** or **BSMS**.
-   - Save the file to a microSD card or secure location.
+   - Go to **Settings** > **Export** > **Export File** > **Sparrow Wallet** or **BSMS** to save the wallet file.
+   - Go to **Settings** > **Export** > **Output Descriptor** to save the descriptor as a QR code, text string, or `.txt` file.
+   - Store backups securely (e.g., microSD card, encrypted USB, metal plate).
 
 ## 2. Recovering Using Devices
 **Requirements**: Devices must have the multisig configuration stored (imported during setup).
@@ -87,17 +88,47 @@ This guide outlines how to recover a 2-of-3 multisig wallet in Sparrow Wallet us
 5. **Verify**: Confirm addresses match the original wallet. Test signing a transaction with two restored devices (e.g., Coldcard Q and one Jade).
 6. **Repeat**: Delete via **File** > **Delete Wallet** and re-import to test.
 
+## 6. Recovering Using Wallet Descriptor (QR Code or String)
+**Requirements**: Wallet descriptor (QR code, text string, or `.txt` file) exported from Sparrow, containing xpubs, derivation path, script type, and 2-of-3 policy.
+1. **Export Descriptor (Before Loss)**:
+   - In Sparrow, go to **Settings** > **Export** > **Output Descriptor**.
+   - Choose **Show QR** to display as a QR code, **Copy** to copy the text string, or **Export File** to save as a `.txt` file.
+   - Example descriptor: `wsh(multi(2,[12345678/48'/0'/0'/2']zpub...,[87654321/48'/0'/0'/2']zpub...,[abcdef12/48'/0'/0'/2']zpub...))`.
+   - Store securely (e.g., paper, metal plate, encrypted USB).
+2. **Import Descriptor into Sparrow**:
+   - Go to **File** > **New Wallet**, name it (e.g., “Recovered-2of3-Descriptor”).
+   - Select **Output Descriptor** in the **Keystores** section.
+   - Choose:
+     - **Scan QR**: Scan the descriptor QR code with your computer’s camera.
+     - **Paste String**: Paste the descriptor text string.
+     - **Import File**: Select the `.txt` file from a microSD card or USB.
+   - Sparrow parses the descriptor, populating script type, policy, xpubs, and derivation paths.
+   - Verify details (2-of-3 policy, derivation path `m/48'/0'/0'/2'`, master fingerprints).
+   - Click **Apply** to create the watch-only wallet.
+3. **Sync and Verify**:
+   - Sparrow syncs with the blockchain to display addresses, transactions, and balance.
+   - Check **Addresses** or **Receive** tab to confirm addresses match the original wallet.
+   - Verify transactions in the **Transactions** tab.
+4. **Sign Transactions**:
+   - Use two devices (Coldcard Q, one Jade) to sign PSBTs exported from Sparrow via QR code or microSD.
+   - If devices are lost, restore seed phrases on new devices (see Section 5).
+5. **Optional: Import to Devices**:
+   - Export the multisig configuration from Sparrow (**Settings** > **Export** > **Coldcard Multisig** or **BSMS**).
+   - Import to Coldcard Q (**Settings** > **Multisig Wallets** > **Import from SD/QR**) and Jade (via Blockstream Green or Sparrow).
+6. **Repeat**: Delete via **File** > **Delete Wallet** and re-import the descriptor to test.
+
 ## Security Notes
-- **Backups**: Store seed phrases, xpubs, and the exported wallet file securely (e.g., metal plates, encrypted USBs).
+- **Backups**: Store seed phrases, xpubs, wallet file, and descriptor securely (e.g., metal plates, encrypted USBs).
 - **Testnet**: Practice on Bitcoin testnet to avoid risking real funds.
   - In Sparrow, use **Tools** > **Restart in Testnet**.
   - On Coldcard Q, set **Settings** > **Blockchain** > **Testnet**.
   - On Jade, use testnet mode in Blockstream Green.
-- **Airgapped**: Restore seed phrases and derive xpubs on airgapped devices or computers to prevent exposure.
+  - Use testnet derivation path: `m/48'/1'/0'/2'`.
+- **Airgapped**: Restore seed phrases, derive xpubs, and import descriptors on airgapped devices or computers to prevent exposure.
 - **Verification**: Verify addresses on at least two devices before sending funds.
 - **Derivation Path**: Ensure the correct path (e.g., `m/48'/0'/0'/2'` for mainnet, `m/48'/1'/0'/2'` for testnet) and script type (e.g., Native Segwit, P2WSH).
 
 ## Testing Multiple Recoveries
 - Delete the wallet after each recovery via **File** > **Delete Wallet**.
-- Repeat each method (devices, xpubs, seed phrases, restored devices) to confirm reliability.
+- Repeat each method (devices, xpubs, seed phrases, restored devices, descriptor) to confirm reliability.
 - Use testnet for all tests to ensure safety.
